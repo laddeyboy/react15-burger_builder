@@ -4,6 +4,8 @@ import Burger from '../../components/Burger/Burger'
 import BuildControls from '../../components/Burger/BuildControls/BuildControls'
 import Modal from '../../components/UI/Modal/Modal'
 import OrderSummary from '../../components/Burger/OrderSummary/OrderSummary'
+import axios from '../../axios-orders'
+import Spinner from '../../components/UI/Spinner/Spinner'
 
 const INGREDIENT_PRICES = {
   salad: 0.5,
@@ -26,7 +28,8 @@ class BurgerBuilder extends Component {
     },
     totalPrice: 4,
     purchasable: false,
-    purchasing: false
+    purchasing: false,
+    loading: false
   }
 
   updatePurchaseState(ingredients) {
@@ -78,7 +81,30 @@ class BurgerBuilder extends Component {
     this.setState({purchasing: false});
   }
   purchaseContinueHandler = () => {
-    alert("You Continue");
+    // alert("You Continue");
+    this.setState({loading: true})
+    const order = {
+      ingredients: this.state.ingredients,
+      //would not use price on the front end in a deployed app, you should calculate that on the back end
+      price: this.state.totalPrice,
+      customer: {
+        name: 'Josh L',
+        address: {
+          street: 'Teststreet 1',
+          zipCode: '41351',
+          country: 'US'
+        },
+        email: 'test@test.com'
+      },
+      deliveryMethod: 'fastest'
+    }
+    axios.post('/orders.json', order)
+      .then(response => {
+        this.setState({loading: false, purchasing: false})
+      })
+      .catch(error => {
+        this.setState({loading: false, purchasing: false})
+      })
   }
 
 
@@ -89,6 +115,15 @@ class BurgerBuilder extends Component {
     for(let key in disabledInfo) {
       disabledInfo[key] = disabledInfo[key] <= 0
     }
+    let orderSummary = <OrderSummary 
+                          ingredients={this.state.ingredients}
+                          price={this.state.totalPrice} 
+                          purchaseCancelled={this.purchaseCancelledHandler}
+                          purchaseContinued={this.purchaseContinueHandler}/>
+    if(this.state.loading) {
+      orderSummary = <Spinner />;
+
+    }
     // the for loop is creating a new object similar to state with booleans
     // {salad: true, meat: false, cheese: false, ...}
     return (
@@ -98,11 +133,7 @@ class BurgerBuilder extends Component {
         <Modal 
           show={this.state.purchasing}
           modalClosed={this.purchaseCancelledHandler}>
-          <OrderSummary 
-            ingredients={this.state.ingredients}
-            price={this.state.totalPrice} 
-            purchaseCancelled={this.purchaseCancelledHandler}
-            purchaseContinued={this.purchaseContinueHandler}/>
+            {orderSummary}
         </Modal>
         <Burger ingredients={this.state.ingredients}/>
         <BuildControls 
